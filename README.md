@@ -87,7 +87,7 @@ site="example.com" && (echo "count,ip,country,asn,org" && sudo find /var/log/apa
 
 Modify as you see fit. Replace the `site` variable above (or wildcard it to get all sites) with the site you want to analyze. Replace the find path to reflect where your logs are located. You will want to run this in `sudo` mode.
 
-This should output the required CSV file in the current directory with the headers `count,ip,country,asn,org`.
+This should output the required CSV file with a timestamp in the current directory with the headers `count,ip,country,asn,org`.
 
 You can swap `asn` and `org` interchangeably if you prefer.
 
