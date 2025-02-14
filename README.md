@@ -79,13 +79,13 @@ count,ip,country,region,city,asn
 
 ### Generating the CSV File
 
-If you haven't already created this CSV file, log into the server where the Apache structured log files are stored and run the following command:
+If you haven't already created this CSV file, log into the server where the Apache structured log files are stored and run the following example command:
 
 ```bash
-site="example.com" && (echo "count,ip,country,asn,org" && find /var/log/ -type f \( -path "*/phpfpm/${site}.access.log*" -o -path "*/apache2/${site}.access.log*" \) -exec zcat -f {} \; | egrep -v "curl|bot|crawler" | cut -d' ' -f1 | sort | uniq -c | sort -rn | while read count ip; do whois_data=$(whois $ip); country=$(echo "$whois_data" | grep -i "^country:" | head -1 | cut -d':' -f2 | tr -d ' '); asn=$(echo "$whois_data" | grep -i "^origin:" | head -1 | cut -d':' -f2 | tr -d ' '); org=$(echo "$whois_data" | grep -i "^org-name:" | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//'); echo "$count,$ip,$country,$asn,\"$org\""; done) | tee ${site}_ip_analysis_$(date +%Y%m%d_%H%M%S).csv
+site="example.com" && (echo "count,ip,country,asn,org" && sudo find /var/log/apache2/ -type f \( -path "*/${site}.access.log*" \) -exec zcat -f {} \; | egrep -v "curl|bot|crawler|spider" | cut -d' ' -f1 | sort | uniq -c | sort -rn | while read count ip; do api_data=$(curl -s "http://ip-api.com/json/${ip}"); country=$(echo "$api_data" | jq -r '.countryCode'); asn=$(echo "$api_data" | jq -r '.as'); org=$(echo "$api_data" | jq -r '.org'); echo "$count,$ip,$country,$asn,\"$org\""; done) | tee ${site}_ip_analysis_$(date +%Y%m%d_%H%M%S).csv
 ```
 
-Replace the `site` variable above (or wildcard it to get all sites) with the site you want to analyze.
+Modify as you see fit. Replace the `site` variable above (or wildcard it to get all sites) with the site you want to analyze. Replace the find path to reflect where your logs are located. You will want to run this in `sudo` mode.
 
 This should output the required CSV file in the current directory with the headers `count,ip,country,asn,org`.
 
