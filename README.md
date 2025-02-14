@@ -110,6 +110,10 @@ asn-ip-analysis-20231025_143022-excl-US-CN/
 └── requests_by_asn_bar.html
 ```
 
+Example tree map showing a Mirai botnet:
+
+![https://github.com/dr-robert-li/asn-ip-botnet-visualizer/blob/main/example.png?raw=true](https://github.com/dr-robert-li/asn-ip-botnet-visualizer/blob/main/example.png?raw=true)
+
 ## Licence
 
 MIT License
