@@ -89,6 +89,8 @@ Modify as you see fit. Replace the `site` variable above (or wildcard it to get 
 
 This should output the required CSV file with a timestamp in the current directory with the headers `count,ip,country,asn,org`.
 
+You can then `curl` or `wget` the CSV file to your local machine and run the tool.
+
 You can swap `asn` and `org` interchangeably if you prefer.
 
 ## Output
