@@ -77,12 +77,12 @@ fig2.update_layout(
 fig2.write_html(os.path.join(output_folder, 'unique_ips_by_country_treemap.html'))
 
 # Create column graph of requests by ASN
-asn_counts = df.groupby('asn')['count'].sum().sort_values(ascending=False).head(20).reset_index()
+asn_counts = df.groupby('asn')['count'].sum().sort_values(ascending=False).head(100).reset_index()
 
 fig3 = px.bar(asn_counts,
              x='asn',
              y='count',
-             title='Top 20 ASNs by Request Count',
+             title='Top 100 ASNs by Request Count',
              labels={'asn': 'ASN', 'count': 'Number of Requests'})
 fig3.update_layout(
     xaxis={'tickangle': 45},

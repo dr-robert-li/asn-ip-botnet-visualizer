@@ -6,7 +6,7 @@ A data visualization tool that generates interactive treemaps and bar charts to 
 
 - Creates treemaps showing total requests by country
 - Visualizes unique IP distributions per country
-- Generates top 20 ASNs bar chart
+- Generates top 100 ASNs bar chart
 - Supports country exclusions for focused analysis
 - Automatically organizes outputs in timestamped folders
 
