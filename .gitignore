@@ -36,3 +36,11 @@ ENV/
 # OS specific files
 .DS_Store
 Thumbs.db
+
+# Source files
+*.bak
+*.orig
+*.rej
+*.swp
+*.csv
+*.log
