@@ -77,6 +77,20 @@ count,ip,country,region,city,asn
 1127,89.248.165.95,The Netherlands,North Holland,Amsterdam,IP Volume inc
 ```
 
+### Generating the CSV File
+
+If you haven't already created this CSV file, log into the server where the Apache structured log files are stored and run the following command:
+
+```bash
+site="example.com" && (echo "count,ip,country,asn,org" && find /var/log/ -type f \( -path "*/phpfpm/${site}.access.log*" -o -path "*/apache2/${site}.access.log*" \) -exec zcat -f {} \; | egrep -v "curl|bot|crawler" | cut -d' ' -f1 | sort | uniq -c | sort -rn | while read count ip; do whois_data=$(whois $ip); country=$(echo "$whois_data" | grep -i "^country:" | head -1 | cut -d':' -f2 | tr -d ' '); asn=$(echo "$whois_data" | grep -i "^origin:" | head -1 | cut -d':' -f2 | tr -d ' '); org=$(echo "$whois_data" | grep -i "^org-name:" | head -1 | cut -d':' -f2 | sed 's/^[ \t]*//'); echo "$count,$ip,$country,$asn,\"$org\""; done) | tee ${site}_ip_analysis_$(date +%Y%m%d_%H%M%S).csv
+```
+
+Replace the `site` variable above (or wildcard it to get all sites) with the site you want to analyze.
+
+This should output the required CSV file in the current directory with the headers `count,ip,country,asn,org`.
+
+You can swap `asn` and `org` interchangeably if you prefer.
+
 ## Output
 
 The tool creates a directory named `asn-ip-analysis-{timestamp}[-excl-{countries}]` containing:
