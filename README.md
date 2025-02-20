@@ -10,7 +10,8 @@ A data visualization tool that generates interactive treemaps and bar charts to 
 - Supports country exclusions for focused analysis
 - Automatically organizes outputs in timestamped folders
 
-**Note: A helper script called `checkip.sh` has been provided** 
+**Note: A helper script called `checkip.sh` has been provided**.
+
 Make sure to use `chmod +x checkip.sh` on it in terminal to use it. Modify the declared variables and invoke with `./checkip.sh`.
 
 ## Requirements
