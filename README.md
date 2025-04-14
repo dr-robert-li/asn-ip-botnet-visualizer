@@ -97,7 +97,7 @@ count,ip,country,region,city,asn
 If you haven't already created this CSV file, log into the server where the Apache structured log files are stored and run the following example command:
 
 ```bash
-site="example.com" && (echo "count,ip,country,asn,org,host" && sudo find /var/log/apache2/ -type f \( -path "*/${site}.access.log*" \) -exec zcat -f {} \; | egrep -v "curl|bot|crawler|spider" | cut -d' ' -f1 | sort | uniq -c | sort -rn | while read count ip; do api_data=$(curl -s "http://ip-api.com/json/${ip}"); country=$(echo "$api_data" | jq -r '.countryCode'); asn=$(echo "$api_data" | jq -r '.as'); org=$(echo "$api_data" | jq -r '.org'); host=$(echo "$api_data" | jq -r '.isp'); echo "$count,$ip,$country,$asn,\"$org\",\"$host\""; done) | tee ${site}_ip_analysis_$(date +%Y%m%d_%H%M%S).csv
+site="example.com" && (echo "count,ip,country,asn,org,host" && sudo find /var/log/apache2/ -type f \( -path "*/${site}.access.log*" \) -exec zcat -f {} \; | egrep -v "curl|bot|crawler|spider" | cut -d' ' -f1 | sort | uniq -c | sort -rn | while read count ip; do api_data=$(curl -s "http://ip-api.com/json/${ip}"); country=$(echo "$api_data" | jq -r '.countryCode'); asn=$(echo "$api_data" | jq -r '.as'); org=$(echo "$api_data" | jq -r '.org'); host=$(echo "$api_data" | jq -r '.isp'); echo "$count,$ip,$country,\"$asn\",\"$org\",\"$host\""; done) | tee ${site}_ip_analysis_$(date +%Y%m%d_%H%M%S).csv
 ```
 
 Modify as you see fit. Replace the `site` variable above (or wildcard it to get all sites) with the site you want to analyze. Replace the find path to reflect where your logs are located. You will want to run this in `sudo` mode.
@@ -105,6 +105,8 @@ Modify as you see fit. Replace the `site` variable above (or wildcard it to get 
 This should output the required CSV file with a timestamp in the current directory with the headers `count,ip,country,asn,org,host`.
 
 You can then `curl` or `wget` the CSV file to your local machine and run the tool.
+
+Alternatively an implementation that uses the IP-api PRO endpoint can be found in `checkip.sh`. Read the commented documentation within this script. It assumes you already have a pre-filtered output.
 
 ## Output
 
