@@ -14,6 +14,27 @@ while True:
         break
     print(f"File {input_file} not found or not a CSV. Please try again.")
 
+# Footer
+def add_footer_to_html(html_file_path):
+    """Add footer with project link and copyright to an HTML file"""
+    footer_html = """
+    <div style="margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 0.8em; font-family: Arial, sans-serif;">
+        <p>Powered by <a href="https://github.com/dr-robert-li/asn-ip-botnet-visualizer" target="_blank">ASN-IP Botnet Visualizer</a> | MIT License &copy; 2025 Dr. Robert Li</p>
+    </div>
+    </body>
+    """
+    
+    # Read the file
+    with open(html_file_path, 'r') as f:
+        content = f.read()
+    
+    # Replace the closing body tag with our footer + closing body tag
+    modified_content = content.replace('</body>', footer_html)
+    
+    # Write the modified content back
+    with open(html_file_path, 'w') as f:
+        f.write(modified_content)
+
 # Create timestamp and base folder name
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 base_folder = f'asn-ip-analysis-{timestamp}'
@@ -382,6 +403,7 @@ index_html = f"""
         a {{ text-decoration: none; color: #0066cc; }}
         a:hover {{ text-decoration: underline; }}
         .stats {{ background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 20px; }}
+        footer {{ margin-top: 30px; padding-top: 10px; border-top: 1px solid #ddd; text-align: center; font-size: 0.8em; }}
     </style>
 </head>
 <body>
@@ -397,12 +419,34 @@ index_html = f"""
 {viz_items_html}
     </div>
     <p><a href="filtered_data.csv">Download Filtered Dataset</a></p>
+    <footer>
+        <p>Open Source Project - <a href="https://github.com/dr-robert-li/asn-ip-botnet-visualizer" target="_blank">ASN-IP Botnet Visualizer</a> | MIT License &copy; 2025 Dr. Robert Li</p>
+    </footer>
 </body>
 </html>
 """
 
 with open(os.path.join(output_folder, 'index.html'), 'w') as f:
     f.write(index_html)
+
+# Adding footer to all HTML files
+html_files = [
+    'requests_by_country_treemap.html',
+    'unique_ips_by_country_treemap.html',
+    'requests_by_asn_bar.html',
+    'top_ips_analysis.html'
+]
+
+if 'org' in df.columns:
+    html_files.append('requests_by_org_bar.html')
+
+if len(df['asn'].unique()) > 1 and len(df['country'].unique()) > 1:
+    html_files.append('asn_country_heatmap.html')
+
+for html_file in html_files:
+    file_path = os.path.join(output_folder, html_file)
+    if os.path.exists(file_path):
+        add_footer_to_html(file_path)
 
 print(f"Analysis complete! Results saved to {output_folder}/")
 print(f"Open {output_folder}/index.html to view all visualizations.")
