@@ -40,6 +40,29 @@ current_key=""
 cycle_count=0
 free_tier_works=false
 
+# Function to display a progress bar
+display_progress() {
+    local current=$1
+    local total=$2
+    local width=15  # Width of the progress bar
+    local percentage=$((current * 100 / total))
+    local completed=$((width * current / total))
+    local remaining=$((width - completed))
+    
+    # Create the progress bar
+    local bar="["
+    for ((i=0; i<completed; i++)); do
+        bar+="#"
+    done
+    for ((i=0; i<remaining; i++)); do
+        bar+="."
+    done
+    bar+="]"
+    
+    # Print the progress bar with percentage and counts
+    printf "\r%s %3d%% (%d/%d) " "$bar" "$percentage" "$current" "$total" >&2
+}
+
 # Function to make API request with a specific key or no key
 make_api_request_with_key() {
     local ip=$1
@@ -197,71 +220,88 @@ if [ "$free_tier_works" = true ]; then
 fi
 echo "Starting with: ${current_key:-<no key (free tier)>}"
 
+# Count total lines in input file
+total_ips=$(wc -l < "$input_file")
+echo "Found $total_ips IPs to process" >&2
+
 # Generate the output filename
 output_filename="ip_analysis_$(date +%Y%m%d_%H%M%S).csv"
 echo "Starting IP analysis. Results will be written to: $output_filename" >&2
 echo "This may take some time depending on the number of IPs to process..." >&2
 
+# Display initial progress bar at 0% and add a newline after it
+display_progress 0 $total_ips
+# echo "" >&2  # Add a newline after the initial progress bar
+
 # Then run the full processing with validation
-(echo "count,ip,country,asn,org,host" && (cat ${input_file} | while read -r count ip; do 
-    # Print status message to stderr, not stdout
-    echo "===> Processing IP: $ip" >&2
-    response=$(make_api_request "$ip")
-    
-    # Check if dig command exists
-    if command -v dig >/dev/null 2>&1; then
-        # Use dig with configurable timeout
-        hostname=$(dig +short -x "$ip" +time=$host_rate_limit +tries=1 2>/dev/null)
-        if [ -z "$hostname" ]; then
-            hostname="NA"
-        fi
-    else
-        # Fallback to host command if dig is not available
-        host_pid_file=$(mktemp)
-        error_file=$(mktemp)
-        (host "$ip" > "$host_pid_file" 2> "$error_file") &
-        host_pid=$!
-
-        # Wait for host command with configurable timeout
-        host_wait=0
-        while [ $(echo "$host_wait < $host_rate_limit" | bc) -eq 1 ] && kill -0 $host_pid 2>/dev/null; do
-            sleep 0.1
-            host_wait=$(echo "$host_wait + 0.1" | bc)
-        done
-
-        # If process is still running, kill it
-        if kill -0 $host_pid 2>/dev/null; then
-            # Redirect kill output to /dev/null to avoid "Terminated" messages
-            kill $host_pid > /dev/null 2>&1
-            wait $host_pid > /dev/null 2>&1
-            hostname="NA"
-        else
-            host_result=$(cat "$host_pid_file")
-            if [[ -n "$host_result" && "$host_result" == *"pointer"* ]]; then
-                hostname=$(echo "$host_result" | grep "pointer" | awk '{print $NF}')
-            else
+(echo "count,ip,country,asn,org,host" && (
+    current_ip=0
+    cat ${input_file} | while read -r count ip; do 
+        # Update progress counter and display progress BEFORE processing
+        current_ip=$((current_ip + 1))
+        display_progress $current_ip $total_ips
+        # echo "" >&2  # Add a newline after each progress bar update
+        
+        # Process the IP
+        response=$(make_api_request "$ip")
+        
+        # Check if dig command exists
+        if command -v dig >/dev/null 2>&1; then
+            # Use dig with integer timeout
+            dig_timeout=$(echo "$host_rate_limit" | awk '{print int($1)}')
+            if [ "$dig_timeout" -lt 1 ]; then
+                dig_timeout=1  # Minimum 1 second for dig
+            fi
+            hostname=$(dig +short -x "$ip" +time=$dig_timeout +tries=1 2>/dev/null)
+            if [ -z "$hostname" ]; then
                 hostname="NA"
             fi
-        fi
+        else
+            # Fallback to host command if dig is not available
+            host_pid_file=$(mktemp)
+            error_file=$(mktemp)
+            (host "$ip" > "$host_pid_file" 2> "$error_file") &
+            host_pid=$!
 
-        # Clean up temp files
-        rm -f "$host_pid_file" "$error_file"
-    fi
-    
-    # Extract fields and create CSV line
-    if [ -n "$response" ] && echo "$response" | jq -e '.countryCode and .as' >/dev/null 2>&1; then
-        country=$(echo "$response" | jq -r '.countryCode')
-        asn=$(echo "$response" | jq -r '.as')
-        org=$(echo "$response" | jq -r '.org')
-        echo "$count,$ip,$country,$asn,\"$org\",\"$hostname\""
-    else
-        # Print error message to stderr, not stdout
-        echo "Could not process IP: $ip after multiple attempts with all API keys" >&2
-        echo "$count,$ip,NA,NA,\"NA\",\"$hostname\""
-    fi
-    
-    sleep $rate_limit
-    
-done)) | tee "$output_filename"
+            # Wait for host command with configurable timeout
+            host_wait=0
+            while [ $(echo "$host_wait < $host_rate_limit" | bc) -eq 1 ] && kill -0 $host_pid 2>/dev/null; do
+                sleep 0.1
+                host_wait=$(echo "$host_wait + 0.1" | bc)
+            done
+
+            # If process is still running, kill it
+            if kill -0 $host_pid 2>/dev/null; then
+                kill $host_pid > /dev/null 2>&1
+                wait $host_pid > /dev/null 2>&1
+                hostname="NA"
+            else
+                host_result=$(cat "$host_pid_file")
+                if [[ -n "$host_result" && "$host_result" == *"pointer"* ]]; then
+                    hostname=$(echo "$host_result" | grep "pointer" | awk '{print $NF}')
+                else
+                    hostname="NA"
+                fi
+            fi
+
+            # Clean up temp files
+            rm -f "$host_pid_file" "$error_file"
+        fi
+        
+        # Extract fields and create CSV line
+        if [ -n "$response" ] && echo "$response" | jq -e '.countryCode and .as' >/dev/null 2>&1; then
+            country=$(echo "$response" | jq -r '.countryCode')
+            asn=$(echo "$response" | jq -r '.as')
+            org=$(echo "$response" | jq -r '.org')
+            echo "$count,$ip,$country,$asn,\"$org\",\"$hostname\""
+        else
+            # Print error message to stderr, not stdout
+            echo "Could not process IP: $ip after multiple attempts with all API keys" >&2
+            echo "$count,$ip,NA,NA,\"NA\",\"$hostname\""
+        fi
+        
+        sleep $rate_limit
+    done
+)) | tee "$output_filename"
 
 echo "Analysis complete. Results saved to: $output_filename" >&2
