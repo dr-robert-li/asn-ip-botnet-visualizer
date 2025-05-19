@@ -1,5 +1,5 @@
 # ASN-IP Analysis Tool
-### Version 2.0
+### Version 2.2
 ### Author: Dr. Robert Li
 
 A data visualization tool that generates interactive treemaps and bar charts to analyze network traffic patterns across countries and ASNs.
