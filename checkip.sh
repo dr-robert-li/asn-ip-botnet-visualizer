@@ -18,7 +18,8 @@
 # zcat -f access.log.gz | cut -d '|' -f4 | sort | uniq -c | sort -rn | column -t > unique-ips.log
 
 # User configurable settings
-input_file="unique-ips.log" # Replace with your input file name
+input_file="random-ips.log" # Replace with your input file name
+max_lines=0 # Maximum number of lines to process (0 = process all lines)
 rate_limit=0.03 # fp secs between ip-api requests
 host_rate_limit=1 # integer timeout in seconds for DNS host lookups 
 rate_limit_pause=3600 # 60 minutes pause if all keys are rate limited
@@ -221,8 +222,16 @@ fi
 echo "Starting with: ${current_key:-<no key (free tier)>}"
 
 # Count total lines in input file
-total_ips=$(wc -l < "$input_file")
-echo "Found $total_ips IPs to process" >&2
+total_file_lines=$(wc -l < "$input_file")
+
+# Determine how many lines to process
+if [ $max_lines -eq 0 ] || [ $max_lines -gt $total_file_lines ]; then
+    total_ips=$total_file_lines
+    echo "Processing all $total_ips IPs" >&2
+else
+    total_ips=$max_lines
+    echo "Processing first $total_ips IPs out of $total_file_lines" >&2
+fi
 
 # Generate the output filename
 output_filename="ip_analysis_$(date +%Y%m%d_%H%M%S).csv"
@@ -231,16 +240,22 @@ echo "This may take some time depending on the number of IPs to process..." >&2
 
 # Display initial progress bar at 0% and add a newline after it
 display_progress 0 $total_ips
-# echo "" >&2  # Add a newline after the initial progress bar
 
 # Then run the full processing with validation
 (echo "count,ip,country,asn,org,host" && (
     current_ip=0
-    cat ${input_file} | while read -r count ip; do 
+    if [ $max_lines -eq 0 ]; then
+        # Process all lines
+        input_data=$(cat "$input_file")
+    else
+        # Process only the first max_lines
+        input_data=$(head -n "$max_lines" "$input_file")
+    fi
+    
+    echo "$input_data" | while read -r count ip; do 
         # Update progress counter and display progress BEFORE processing
         current_ip=$((current_ip + 1))
         display_progress $current_ip $total_ips
-        # echo "" >&2  # Add a newline after each progress bar update
         
         # Process the IP
         response=$(make_api_request "$ip")
