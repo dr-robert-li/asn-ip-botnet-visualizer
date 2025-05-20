@@ -18,7 +18,7 @@
 # zcat -f access.log.gz | cut -d '|' -f4 | sort | uniq -c | sort -rn | column -t > unique-ips.log
 
 # User configurable settings
-input_file="random-ips.log" # Replace with your input file name
+input_file="input_ips.log" # Replace with your input file name
 max_lines=0 # Maximum number of lines to process (0 = process all lines)
 rate_limit=0.03 # fp secs between ip-api requests
 host_rate_limit=1 # integer timeout in seconds for DNS host lookups 
